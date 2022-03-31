@@ -1,0 +1,29 @@
+#!/bin/bash
+
+function bundleRepo() {
+    gtar --list --file="$2.tar.gz"
+    rm -rf tar-base project
+    mkdir -p "./tar-base"
+    tar xf "$2.tar.gz" -C "./tar-base"
+    git clone "$1" project
+    cd project
+    rm -rf .git
+    git init
+    git add -A .
+    git commit --author "GitLab <root@localhost>" -m "$3"
+    git bundle create project.bundle --all
+    mv -f project.bundle ../tar-base/
+    cd ../tar-base
+    rm -rf ./uploads ./lfs-objects
+    cat project.json | jq '.issues = [] | .releases = [] | .merge_requests = [] | .ci_pipelines = [] | .pipeline_schedules = [] | .services = [] | .pipelines = [] | .protected_branches = [] | .project_members = [] | .labels = [] | del(.ci_cd_settings, .external_authorization_classification_label, .project_feature)' -c > tmp.json
+    mv -f tmp.json project.json
+    ls -alth
+    tar cvzf "$2.tar.gz" ./
+    cd ..
+    rm -rf "$2.tar.gz"
+    mv tar-base/*.gz .
+    gtar --list --file="$2.tar.gz"
+}
+
+# bundle_repo https://gitlab.com/pages/hugo hugo "Pages/Hugo template"
+bundleRepo $1 $2 $3
